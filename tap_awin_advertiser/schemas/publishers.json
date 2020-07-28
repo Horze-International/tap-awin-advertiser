@@ -1,0 +1,29 @@
+{
+    "type": "object",
+    "additionalProperties": false,
+    "properties": {
+        "id": {
+            "type": "integer",
+            "description": "ID of the publisher"
+        },
+        "name": {
+            "type": "string",
+            "description": "name of the publisher"
+        },
+        "primary_region": {
+            "type": "string",
+            "description": "main/primary region of the publisher"
+        },
+        "sales_regions": {
+            "type": ["null","array"],
+            "items": {
+                "type": "string"
+            },
+            "description": "additional sales regions of the publisher (if defined)"
+        },
+        "primary_type": {
+            "type": "string",
+            "description": "primary promotion type of the publisher"
+        }
+    }
+}

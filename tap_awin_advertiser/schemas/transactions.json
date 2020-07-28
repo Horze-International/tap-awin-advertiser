@@ -1,0 +1,217 @@
+{
+    "type": "object",
+    "additionalProperties": false,
+    "properties": {
+        "id": {
+            "type": "integer"
+        },
+        "url": {
+            "type": ["null","string"]
+        },
+        "advertiser_id": {
+            "type": "integer"
+        },
+        "publisher_id": {
+            "type": "integer"
+        },
+        "commission_sharing_publisher_id": {
+            "type": ["null", "integer"]
+        },
+        "commission_sharing_selected_rate_publisher_id": {
+            "type": ["null", "integer"]
+        },
+        "site_name": {
+            "type": "string"
+        },
+        "commission_status": {
+            "type": "string",
+            "enum": ["pending", "approved", "declined", "deleted"]
+        },
+        "commission_amount": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+                "amount": {
+                    "type": "number"
+                },
+                "currency": {
+                    "type": "string"
+                }
+            }
+        },
+        "sales_amount": {
+            "type": ["null","object"],
+            "additionalProperties": false,
+            "properties": {
+                "amount": {
+                    "type": "number"
+                },
+                "currency": {
+                    "type": "string"
+                }
+            }
+        },
+        "ip_hash": {
+            "type": "string"
+        },
+        "customer_country": {
+            "type": "string"
+        },
+        "click_refs": {
+            "type": ["null","object"],
+            "additionalProperties": true,
+            "properties": {
+                "click_ref": {
+                    "type": "string"
+                }
+            }
+        },
+        "click_date": {
+            "type": "string",
+            "format": "date-time"
+        },
+        "transaction_date": {
+            "type": "string",
+            "format": "date-time"
+        },
+        "validation_date": {
+            "type": ["null", "string"],
+            "format": "date-time"
+        },
+        "type": {
+            "type": "string"
+        },
+        "decline_reason": {
+            "type": ["null", "string"]
+        },
+        "voucher_code_used": {
+            "type": "boolean"
+        },
+        "voucher_code": {
+            "type": ["null", "string"]
+        },
+        "lapse_time": {
+            "type": "integer"
+        },
+        "amended": {
+            "type": "boolean"
+        },
+        "amend_reason": {
+            "type": ["null", "string"]
+        },
+        "old_sales_amount": {
+            "type": ["null", "object"],
+            "additionalProperties": false,
+            "properties": {
+                "amount": {
+                    "type": "number"
+                },
+                "currency": {
+                    "type": "string"
+                }
+            }
+        },
+        "old_commission_amount": {
+            "type": ["null", "object"],
+            "additionalProperties": false,
+            "properties": {
+                "amount": {
+                    "type": "number"
+                },
+                "currency": {
+                    "type": "string"
+                }
+            }
+        },
+        "click_device": {
+            "type": "string"
+        },
+        "trasaction_device": {
+            "type": ["null","string"]
+        },
+        "publisher_url": {
+            "type": ["null","string"]
+        },
+        "advertiser_country": {
+            "type": "string"
+        },
+        "order_ref": {
+            "type": ["null", "string"]
+        },
+        "customer_parameters": {
+            "type": ["null", "array"],
+            "items": {
+                "type": "object",
+                "additionalProperties": false,
+                "properties": {
+                    "key": {
+                        "type": "string"
+                    },
+                    "value": {
+                        "type": "string"
+                    }
+                }
+            }
+        },
+        "transaction_parts": {
+            "type": "array",
+            "items": {
+                "type": "object",
+                "additionalProperties": false,
+                "properties": {
+                    "commission_group_id": {
+                        "type": "integer"
+                    },
+                    "amount": {
+                        "type": "number"
+                    },
+                    "commission_amount": {
+                        "type": "number"
+                    },
+                    "advertiser_cost": {
+                        "type": ["null", "number"]
+                    },
+                    "commission_group_code": {
+                        "type": "string"
+                    },
+                    "commission_group_name": {
+                        "type": "string"
+                    }
+                }
+            }
+        },
+        "paid_to_publisher": {
+            "type": "boolean"
+        },
+        "payment_id": {
+            "type": "integer"
+        },
+        "transaction_query_id": {
+            "type": "integer"
+        },
+        "original_sale_amount": {
+            "type": ["null", "object"],
+            "additionalProperties": false,
+            "properties": {
+                "amount": {
+                    "type": "number"
+                },
+                "currency": {
+                    "type": "string"
+                }
+            }
+        },
+        "advertiser_cost": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+                "amount": {
+                    "type": ["null", "number"]
+                },
+                "currency": {
+                    "type": ["null", "string"]
+                }
+			}
+        }
+    }
+}
