@@ -32,11 +32,11 @@ def main():
         state = {}
         if parsed_args.state:
             state = parsed_args.state
-        
+
         config = {}
         if parsed_args.config:
             config = parsed_args.config
-        
+
         if parsed_args.discover:
             do_discover()
         elif parsed_args.catalog:

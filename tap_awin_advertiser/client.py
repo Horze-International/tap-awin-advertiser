@@ -121,7 +121,7 @@ class AwinClient:
                     # the request limit is set for one minute, sample error message:
                     #   Requests limit '20' times per '1' minutes' is exceeded
                     # so we just wait 1 minute and try again
-                    LOGGER.warning(f'Request limit exceeded: {error_description}')
+                    LOGGER.warning('Request limit exceeded: {}'.format(error_description))
                     time.sleep(60)
             except Exception as err:
                 pass
