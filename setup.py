@@ -3,7 +3,7 @@
 from setuptools import setup, find_packages
 
 setup(name='tap-awin-advertiser',
-      version="0.1.2",
+      version="0.1.3",
       description='Singer.io tap for extracting data from the AWIN Advertiser API',
       author='Horze',
       url='http://horze.de',
