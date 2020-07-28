@@ -55,7 +55,7 @@
             "type": "string"
         },
         "customer_country": {
-            "type": "string"
+            "type": ["null","string"]
         },
         "click_refs": {
             "type": ["null","object"],
