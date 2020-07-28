@@ -42,7 +42,7 @@ def get_bookmark(state, stream, default, bookmark_field=None, parent=None, paren
         return default
 
     if parent and parent_id:
-        key = '{}(parent_{}_id:{})'.format(bookmark_field, parent, parent_id)
+        key = '{}(parent_{}:{})'.format(bookmark_field, parent, parent_id)
     else:
         key = bookmark_field
 
@@ -55,7 +55,7 @@ def get_bookmark(state, stream, default, bookmark_field=None, parent=None, paren
 
 def write_bookmark(state, stream, value, bookmark_field=None, parent=None, parent_id=None):
     if parent and parent_id:
-        key = '{}(parent_{}_id:{})'.format(bookmark_field, parent, parent_id)
+        key = '{}(parent_{}:{})'.format(bookmark_field, parent, parent_id)
     else:
         key = bookmark_field
     if 'bookmarks' not in state:
@@ -212,8 +212,8 @@ def sync_endpoint(
             # API will error if future dates are requested
 
             # DAY based
-            window_start_dt_str = start_window.strftime('%Y-%m-%dT00:00:00')
-            window_end_dt_str = end_window.strftime('%Y-%m-%dT23:59:59')
+            window_start_dt_str = start_window.date().strftime('%Y-%m-%dT00:00:00')
+            window_end_dt_str = end_window.date().strftime('%Y-%m-%dT23:59:59')
 
             params[bookmark_query_field_from] = window_start_dt_str
             params[bookmark_query_field_to] = window_end_dt_str
@@ -336,9 +336,8 @@ def sync_endpoint(
                             record.pop('postalCode')
 
                     # Add parent id field/value
-                    if parent and parent_id:
-                        parent_key = '{}_id'.format(parent)
-                        record[parent_key] = parent_id
+                    if parent and parent_id and parent not in record:
+                        record[parent] = parent_id
 
                     # transform record (remove inconsistent use of CamelCase)
                     try:
@@ -441,7 +440,7 @@ def sync_endpoint(
             write_bookmark(state, stream_name, max_bookmark_value, bookmark_field, parent, parent_id)
 
         # Increment date window and sum endpoint_total
-        start_window = end_window
+        start_window = end_window + timedelta(days=1)
         next_end_window = end_window + timedelta(days=date_window_size)
         if next_end_window > now_datetime:
             end_window = now_datetime

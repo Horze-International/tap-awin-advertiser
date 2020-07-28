@@ -38,6 +38,7 @@ STREAMS = {
                 'bookmark_query_field_to': 'endDate',
                 'path': 'advertisers/{parent_id}/transactions/',
                 'date_window_size': 30,
+                'parent': 'advertiser_id',
                 'params': {
                     'timezone': 'UTC',
                     'dateType': 'transaction',
