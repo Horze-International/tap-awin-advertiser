@@ -127,7 +127,6 @@ def sync_endpoint(
         endpoint_config,
         sync_streams,
         selected_streams,
-        timezone_desc=None,
         parent_id=None):
 
     # endpoint_config variables
@@ -168,13 +167,6 @@ def sync_endpoint(
         country_code_list = country_codes.split(',')
     else:
         country_code_list = ['none']
-
-    # Get the timezone and latest bookmark for the stream
-    if not timezone_desc:
-        timezone = pytz.timezone('UTC')
-    else:
-        timezone = pytz.timezone(timezone_desc)
-    LOGGER.info('timezone = {}'.format(timezone))
 
     last_datetime = get_bookmark(state, stream_name, start_date, bookmark_field, parent, parent_id)
     max_bookmark_value = last_datetime
@@ -397,9 +389,6 @@ def sync_endpoint(
                                 i = i + 1
                             parent_id = record.get(parent_id_field)
 
-                            if stream_name == 'ad_accounts':
-                                timezone_desc = record.get('timezone', timezone_desc)
-
                             # sync_endpoint for child
                             LOGGER.info(
                                 'START Sync for Stream: {}, parent_stream: {}, parent_id: {}'\
@@ -414,7 +403,6 @@ def sync_endpoint(
                                 endpoint_config=child_endpoint_config,
                                 sync_streams=sync_streams,
                                 selected_streams=selected_streams,
-                                timezone_desc=timezone_desc,
                                 parent_id=parent_id)
 
                             LOGGER.info(
