@@ -41,8 +41,7 @@ STREAMS = {
                 'parent': 'advertiser_id',
                 'params': {
                     'timezone': 'UTC',
-                    'dateType': 'transaction',
-                    'status': 'approved'
+                    'dateType': 'transaction'
                 }
             }
         }
