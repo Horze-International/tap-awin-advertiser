@@ -124,7 +124,7 @@
             }
         },
         "click_device": {
-            "type": "string"
+            "type": ["null","string"]
         },
         "trasaction_device": {
             "type": ["null","string"]
