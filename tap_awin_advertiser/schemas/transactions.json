@@ -52,7 +52,7 @@
             }
         },
         "ip_hash": {
-            "type": "string"
+            "type": ["null","string"]
         },
         "customer_country": {
             "type": ["null","string"]
