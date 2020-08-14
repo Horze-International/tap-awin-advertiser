@@ -83,7 +83,6 @@ def process_records(catalog, #pylint: disable=too-many-branches
         for record in records:
             # Transform record for Singer.io
             with Transformer() as transformer:
-                import json
                 transformed_record = transformer.transform(
                     record,
                     schema,
@@ -258,92 +257,35 @@ def sync_endpoint(
             else:
                 data_records = data
 
-            # Reports stats streams de-nesting
-            if True == False:
-#                if '_stats_' in stream_name:
-                for data_record in data_records:
-                    base_record = data_record.get(data_key_record, {})
-                    records = base_record.get('timeseries', [])
-                    for record in records:
-                        # Add parent base_record fields to record
-                        for key, val in base_record.items():
-                            if key not in ('start_time', 'end_time', 'timeseries'):
-                                record[key] = val
+            for data_record in data_records:
+                if data_key_record:
+                    record = data_record.get(data_key_record, {})
+                else:
+                    record = data_record
 
-                        # De-nest stats
-                        stats = record.get('stats', {})
-                        for key, val in stats.items():
-                            record[key] = val
-                        record.pop('stats', None)
+                # Add parent id field/value
+                if parent and parent_id and parent not in record:
+                    record[parent] = parent_id
 
-                        # transform record
-                        try:
-                            transformed_record = humps.decamelize(record)
-                        except Exception as err:
-                            LOGGER.error('{}'.format(err))
-                            # LOGGER.error('error record: {}'.format(record)) # COMMENT OUT
-                            raise Exception(err)
+                # transform record (remove inconsistent use of CamelCase)
+                try:
+                    transformed_record = humps.decamelize(record)
+                except Exception as err:
+                    LOGGER.error('{}'.format(err))
+                    LOGGER.error('error record: {}'.format(record))
+                    raise Exception(err)
 
-                        # verify primary_keys are in tansformed_record
-                        if 'id' not in transformed_record or 'start_time' not in transformed_record:
-                            LOGGER.error('Stream: {}, Missing key (id or start_time)'.format(
-                                stream_name))
-                            LOGGER.error('transformed_record: {}'.format(transformed_record))
-                            raise RuntimeError
+                # verify primary_keys are in tansformed_record
+                for key in id_fields:
+                    if not transformed_record.get(key):
+                        LOGGER.error('Stream: {}, Missing key {}'.format(
+                            stream_name, key))
+                        LOGGER.info('transformed_record: {}'.format(transformed_record))
+                        raise RuntimeError
 
-                        transformed_data.append(transformed_record)
-                        # End for record in records
-                    # End for data_record in array
-                # End stats stream
-
-            # Other streams de-nesting
-            else: # Not stats stream
-                for data_record in data_records:
-                    if data_key_record:
-                        record = data_record.get(data_key_record, {})
-                    else:
-                        record = data_record
-
-                    # Transforms to align schemas for targeting streams
-                    if stream_name.startswith('targeting_'):
-                        record['targeting_group'] = targeting_group
-                        record['targeting_type'] = targeting_type
-                        if country_code != 'none':
-                            record['country_code'] = country_code
-                        if targeting_group == 'geo':
-                            record_id = record.get(targeting_type, {}).get('id')
-                            record_name = record.get(targeting_type, {}).get('name')
-                            record['id'] = record_id
-                            record['name'] = record_name
-                        if targeting_type == 'postal_code':
-                            record_id = record.get('postalCode')
-                            record['id'] = record_id
-                            record['name'] = record_id
-                            record.pop('postalCode')
-
-                    # Add parent id field/value
-                    if parent and parent_id and parent not in record:
-                        record[parent] = parent_id
-
-                    # transform record (remove inconsistent use of CamelCase)
-                    try:
-                        transformed_record = humps.decamelize(record)
-                    except Exception as err:
-                        LOGGER.error('{}'.format(err))
-                        LOGGER.error('error record: {}'.format(record))
-                        raise Exception(err)
-
-                    # verify primary_keys are in tansformed_record
-                    for key in id_fields:
-                        if not transformed_record.get(key):
-                            LOGGER.error('Stream: {}, Missing key {}'.format(
-                                stream_name, key))
-                            LOGGER.info('transformed_record: {}'.format(transformed_record))
-                            raise RuntimeError
-
-                    transformed_data.append(transformed_record)
-                    # End for data_record in array
-                # End non-stats stream
+                transformed_data.append(transformed_record)
+                # End for data_record in array
+            # End non-stats stream
 
             # LOGGER.info('transformed_data = {}'.format(transformed_data)) # COMMENT OUT
             if not transformed_data or transformed_data is None:
