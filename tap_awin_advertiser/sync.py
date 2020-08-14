@@ -102,12 +102,10 @@ def process_records(catalog, #pylint: disable=too-many-branches
                     if bookmark_dttm > max_bookmark_dttm:
                         max_bookmark_value = strftime(bookmark_dttm)
 
-                    # Keep only records whose bookmark is after the last_datetime
-                    if bookmark_dttm >= last_dttm:
-                        # LOGGER.info('record1: {}'.format(record)) # TESTING, comment out
-                        write_record(stream_name, transformed_record, \
-                            time_extracted=time_extracted)
-                        counter.increment()
+                    # LOGGER.info('record1: {}'.format(record)) # TESTING, comment out
+                    write_record(stream_name, transformed_record, \
+                        time_extracted=time_extracted)
+                    counter.increment()
                 else:
                     # LOGGER.info('record2: {}'.format(record)) # TESTING, comment out
                     write_record(stream_name, transformed_record, time_extracted=time_extracted)
@@ -145,11 +143,7 @@ def sync_endpoint(
 
     # tap config variabless
     start_date = config.get('start_date')
-    swipe_up_attribution_window = config.get('swipe_up_attribution_window', '28_DAY')
-
-    swipe_up_attr = int(swipe_up_attribution_window.replace('_DAY', ''))
-
-    attribution_window = max(1, swipe_up_attr)
+    attribution_window = config.get('attribution_window', 30)
 
     omit_empty = config.get('omit_empty', 'true')
     if '_stats_' in stream_name:
@@ -173,9 +167,11 @@ def sync_endpoint(
         # Set start window
         start_window = now_datetime - timedelta(days=attribution_window)
         if last_dttm < start_window:
-            start_window = last_dttm
+            start_window = last_dttm + timedelta(days=1) # makes sure that we don't have duplicated data
         # Set end window
         end_window = start_window + timedelta(days=date_window_size)
+        if end_window > now_datetime:
+            end_window = now_datetime
 
     else:
         start_window = last_dttm
