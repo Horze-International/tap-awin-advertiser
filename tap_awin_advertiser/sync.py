@@ -147,16 +147,10 @@ def sync_endpoint(
     # tap config variabless
     start_date = config.get('start_date')
     swipe_up_attribution_window = config.get('swipe_up_attribution_window', '28_DAY')
-    view_attribution_window = config.get('view_attribution_window', '7_DAY')
 
     swipe_up_attr = int(swipe_up_attribution_window.replace('_DAY', ''))
 
-    if view_attribution_window in ('1_HOUR', '3_HOUR', '6_HOUR',):
-        view_attr = 1
-    else:
-        view_attr = int(view_attribution_window.replace('_DAY', ''))
-
-    attribution_window = max(1, swipe_up_attr, view_attr)
+    attribution_window = max(1, swipe_up_attr)
 
     omit_empty = config.get('omit_empty', 'true')
     if '_stats_' in stream_name:
