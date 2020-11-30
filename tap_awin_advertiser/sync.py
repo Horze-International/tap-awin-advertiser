@@ -132,9 +132,6 @@ def sync_endpoint(
     params = endpoint_config.get('params', {})
     bookmark_query_field_from = endpoint_config.get('bookmark_query_field_from')
     bookmark_query_field_to = endpoint_config.get('bookmark_query_field_to')
-    targeting_group = endpoint_config.get('targeting_group')
-    targeting_type = endpoint_config.get('targeting_type')
-    targeting_country_ind = endpoint_config.get('targeting_country_ind', False)
     data_key_array = endpoint_config.get('data_key_array')
     data_key_record = endpoint_config.get('data_key_record')#.format(targeting_type=targeting_type)
     id_fields = endpoint_config.get('key_properties')
@@ -144,16 +141,6 @@ def sync_endpoint(
     # tap config variabless
     start_date = config.get('start_date')
     attribution_window = config.get('attribution_window', 30)
-
-    omit_empty = config.get('omit_empty', 'true')
-    if '_stats_' in stream_name:
-        params['omit_empty'] = omit_empty
-
-    country_codes = config.get('targeting_country_codes', 'us').replace(' ', '').lower()
-    if targeting_country_ind:
-        country_code_list = country_codes.split(',')
-    else:
-        country_code_list = ['none']
 
     last_datetime = get_bookmark(state, stream_name, start_date, bookmark_field, parent, parent_id)
     max_bookmark_value = last_datetime
@@ -199,160 +186,147 @@ def sync_endpoint(
             params[bookmark_query_field_from] = window_start_dt_str
             params[bookmark_query_field_to] = window_end_dt_str
 
-        # This loop will run once for non-country_code endpoints
-        #   and one or more times (for each country) for country_code endpoints
-        for country_code in country_code_list:
-            # Path
-            if stream_name.startswith('targeting_'):
-                path = base_path.format(
-                    targeting_group=targeting_group,
-                    targeting_type=targeting_type,
-                    country_code=country_code,
-                    parent_id=parent_id)
-            else:
-                path = base_path.format(
-                    country_code=country_code,
-                    parent_id=parent_id)
+        path = base_path.format(
+            parent_id=parent_id)
 
+        total_records = 0
+
+        # concate params
+        querystring = '&'.join(['%s=%s' % (key, value) for (key, value) in params.items()])
+
+        # initialize url
+        url = '{}/{}?{}'.format(
+            client.base_url,
+            path,
+            querystring)
+
+        # API request data
+        data = {}
+        try:
+            data = client.get(
+                url=url,
+                endpoint=stream_name)
+        except Exception as err:
+            LOGGER.error('{}'.format(err))
+            LOGGER.error('URL for Stream {}: {}'.format(stream_name, url))
+            raise Exception(err)
+
+        # time_extracted: datetime when the data was extracted from the API
+        time_extracted = utils.now()
+        if not data or data is None or data == {}:
+            LOGGER.info('No data results returned')
             total_records = 0
+            break # No data results
 
-            # concate params
-            querystring = '&'.join(['%s=%s' % (key, value) for (key, value) in params.items()])
+        # Transform data with transform_json from transform.py
+        # The data_key_array identifies the array/list of records below the <root> element
+        # LOGGER.info('data = {}'.format(data)) # TESTING, comment out
+        transformed_data = [] # initialize the record list
 
-            # initialize url
-            url = '{}/{}?{}'.format(
-                client.base_url,
-                path,
-                querystring)
+        if data_key_array:
+            data_records = data.get(data_key_array, [])
+        else:
+            data_records = data
 
-            # API request data
-            data = {}
+        for data_record in data_records:
+            if data_key_record:
+                record = data_record.get(data_key_record, {})
+            else:
+                record = data_record
+
+            # Add parent id field/value
+            if parent and parent_id and parent not in record:
+                record[parent] = parent_id
+
+            # transform record (remove inconsistent use of CamelCase)
             try:
-                data = client.get(
-                    url=url,
-                    endpoint=stream_name)
+                transformed_record = humps.decamelize(record)
             except Exception as err:
                 LOGGER.error('{}'.format(err))
-                LOGGER.error('URL for Stream {}: {}'.format(stream_name, url))
+                LOGGER.error('error record: {}'.format(record))
                 raise Exception(err)
 
-            # time_extracted: datetime when the data was extracted from the API
-            time_extracted = utils.now()
-            if not data or data is None or data == {}:
-                LOGGER.info('No data results returned')
-                total_records = 0
-                break # No data results
+            # verify primary_keys are in tansformed_record
+            for key in id_fields:
+                if not transformed_record.get(key):
+                    LOGGER.error('Stream: {}, Missing key {}'.format(
+                        stream_name, key))
+                    LOGGER.info('transformed_record: {}'.format(transformed_record))
+                    raise RuntimeError
 
-            # Transform data with transform_json from transform.py
-            # The data_key_array identifies the array/list of records below the <root> element
-            # LOGGER.info('data = {}'.format(data)) # TESTING, comment out
-            transformed_data = [] # initialize the record list
+            transformed_data.append(transformed_record)
+            # End for data_record in array
+        # End non-stats stream
 
-            if data_key_array:
-                data_records = data.get(data_key_array, [])
-            else:
-                data_records = data
+        # LOGGER.info('transformed_data = {}'.format(transformed_data)) # COMMENT OUT
+        if not transformed_data or transformed_data is None:
+            LOGGER.info('No transformed data for data = {}'.format(data))
+            total_records = 0
+            break # No transformed_data results
 
-            for data_record in data_records:
-                if data_key_record:
-                    record = data_record.get(data_key_record, {})
-                else:
-                    record = data_record
+        # Process records and get the max_bookmark_value and record_count
+        if stream_name in sync_streams:
+            max_bookmark_value, record_count = process_records(
+                catalog=catalog,
+                stream_name=stream_name,
+                records=transformed_data,
+                time_extracted=time_extracted,
+                bookmark_field=bookmark_field,
+                max_bookmark_value=max_bookmark_value,
+                last_datetime=last_datetime)
+            LOGGER.info('Stream {}, batch processed {} records'.format(
+                stream_name, record_count))
 
-                # Add parent id field/value
-                if parent and parent_id and parent not in record:
-                    record[parent] = parent_id
+        # Loop thru parent batch records for each children objects (if should stream)
+        children = endpoint_config.get('children')
+        if children:
+            for child_stream_name, child_endpoint_config in children.items():
+                if child_stream_name in sync_streams:
+                    LOGGER.info('START Syncing: {}'.format(child_stream_name))
+                    write_schema(catalog, child_stream_name)
+                    # For each parent record
+                    for record in transformed_data:
+                        i = 0
+                        # Set parent_id
+                        for id_field in id_fields:
+                            if i == 0:
+                                parent_id_field = id_field
+                            if id_field == 'id':
+                                parent_id_field = id_field
+                            i = i + 1
+                        parent_id = record.get(parent_id_field)
 
-                # transform record (remove inconsistent use of CamelCase)
-                try:
-                    transformed_record = humps.decamelize(record)
-                except Exception as err:
-                    LOGGER.error('{}'.format(err))
-                    LOGGER.error('error record: {}'.format(record))
-                    raise Exception(err)
+                        # sync_endpoint for child
+                        LOGGER.info(
+                            'START Sync for Stream: {}, parent_stream: {}, parent_id: {}'\
+                                .format(child_stream_name, stream_name, parent_id))
 
-                # verify primary_keys are in tansformed_record
-                for key in id_fields:
-                    if not transformed_record.get(key):
-                        LOGGER.error('Stream: {}, Missing key {}'.format(
-                            stream_name, key))
-                        LOGGER.info('transformed_record: {}'.format(transformed_record))
-                        raise RuntimeError
+                        child_total_records = sync_endpoint(
+                            client=client,
+                            config=config,
+                            catalog=catalog,
+                            state=state,
+                            stream_name=child_stream_name,
+                            endpoint_config=child_endpoint_config,
+                            sync_streams=sync_streams,
+                            selected_streams=selected_streams,
+                            parent_id=parent_id)
 
-                transformed_data.append(transformed_record)
-                # End for data_record in array
-            # End non-stats stream
+                        LOGGER.info(
+                            'FINISHED Sync for Stream: {}, parent_id: {}, total_records: {}'\
+                                .format(child_stream_name, parent_id, child_total_records))
+                        # End transformed data record loop
+                    # End if child in sync_streams
+                # End child streams for parent
+            # End if children
 
-            # LOGGER.info('transformed_data = {}'.format(transformed_data)) # COMMENT OUT
-            if not transformed_data or transformed_data is None:
-                LOGGER.info('No transformed data for data = {}'.format(data))
-                total_records = 0
-                break # No transformed_data results
+        # Parent record batch
+        total_records = total_records + record_count
+        endpoint_total = endpoint_total + record_count
 
-            # Process records and get the max_bookmark_value and record_count
-            if stream_name in sync_streams:
-                max_bookmark_value, record_count = process_records(
-                    catalog=catalog,
-                    stream_name=stream_name,
-                    records=transformed_data,
-                    time_extracted=time_extracted,
-                    bookmark_field=bookmark_field,
-                    max_bookmark_value=max_bookmark_value,
-                    last_datetime=last_datetime)
-                LOGGER.info('Stream {}, batch processed {} records'.format(
-                    stream_name, record_count))
-
-            # Loop thru parent batch records for each children objects (if should stream)
-            children = endpoint_config.get('children')
-            if children:
-                for child_stream_name, child_endpoint_config in children.items():
-                    if child_stream_name in sync_streams:
-                        LOGGER.info('START Syncing: {}'.format(child_stream_name))
-                        write_schema(catalog, child_stream_name)
-                        # For each parent record
-                        for record in transformed_data:
-                            i = 0
-                            # Set parent_id
-                            for id_field in id_fields:
-                                if i == 0:
-                                    parent_id_field = id_field
-                                if id_field == 'id':
-                                    parent_id_field = id_field
-                                i = i + 1
-                            parent_id = record.get(parent_id_field)
-
-                            # sync_endpoint for child
-                            LOGGER.info(
-                                'START Sync for Stream: {}, parent_stream: {}, parent_id: {}'\
-                                    .format(child_stream_name, stream_name, parent_id))
-
-                            child_total_records = sync_endpoint(
-                                client=client,
-                                config=config,
-                                catalog=catalog,
-                                state=state,
-                                stream_name=child_stream_name,
-                                endpoint_config=child_endpoint_config,
-                                sync_streams=sync_streams,
-                                selected_streams=selected_streams,
-                                parent_id=parent_id)
-
-                            LOGGER.info(
-                                'FINISHED Sync for Stream: {}, parent_id: {}, total_records: {}'\
-                                    .format(child_stream_name, parent_id, child_total_records))
-                            # End transformed data record loop
-                        # End if child in sync_streams
-                    # End child streams for parent
-                # End if children
-
-            # Parent record batch
-            total_records = total_records + record_count
-            endpoint_total = endpoint_total + record_count
-
-            LOGGER.info('Synced Stream: {}, records: {}'.format(
-                stream_name,
-                total_records))
-            # End country_code loop
+        LOGGER.info('Synced Stream: {}, records: {}'.format(
+            stream_name,
+            total_records))
 
         # Update the state with the max_bookmark_value for the stream date window
         # Snapchat Ads API does not allow page/batch sorting; bookmark written for date window
@@ -403,20 +377,14 @@ def sync(client, config, catalog, state):
     for stream_name, stream_metadata in flat_streams.items():
         # If stream has a parent_stream, then it is a child stream
         parent_stream = stream_metadata.get('parent_stream')
-        grandparent_stream = stream_metadata.get('grandparent_stream')
-        great_grandparent_stream = stream_metadata.get('great_grandparent_stream')
 
         if stream_name in selected_streams:
-            LOGGER.info('stream: {}, parent: {}, grandparent: {}, great_grandparent: {}'.format(
-                stream_name, parent_stream, grandparent_stream, great_grandparent_stream))
+            LOGGER.info('stream: {}, parent: {}'.format(
+                stream_name, parent_stream))
             if stream_name not in sync_streams:
                 sync_streams.append(stream_name)
             if parent_stream and parent_stream not in sync_streams:
                 sync_streams.append(parent_stream)
-            if grandparent_stream and grandparent_stream not in sync_streams:
-                sync_streams.append(grandparent_stream)
-            if great_grandparent_stream and great_grandparent_stream not in sync_streams:
-                sync_streams.append(grandparent_stream)
     LOGGER.info('Sync Streams: {}'.format(sync_streams))
 
     # Loop through selected_streams

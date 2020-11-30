@@ -60,20 +60,5 @@ def flatten_streams():
             for child_stream_name, child_endpoint_config in children.items():
                 flat_streams[child_stream_name] = child_endpoint_config
                 flat_streams[child_stream_name]['parent_stream'] = stream_name
-                # Loop through grandchildren
-                grandchildren = child_endpoint_config.get('children')
-                if grandchildren:
-                    for grandchild_stream_name, grandchild_endpoint_config in grandchildren.items():
-                        flat_streams[grandchild_stream_name] = grandchild_endpoint_config
-                        flat_streams[grandchild_stream_name]['parent_stream'] = child_stream_name
-                        flat_streams[grandchild_stream_name]['grandparent_stream'] = stream_name
-                        # Loop through great_grandchildren
-                        great_grandchildren = grandchild_endpoint_config.get('children')
-                        if great_grandchildren:
-                            for great_grandchild_stream_name, great_grandchild_endpoint_config in great_grandchildren.items():
-                                flat_streams[great_grandchild_stream_name] = great_grandchild_endpoint_config
-                                flat_streams[great_grandchild_stream_name]['parent_stream'] = grandchild_stream_name
-                                flat_streams[grandchild_stream_name]['grandparent_stream'] = child_stream_name
-                                flat_streams[grandchild_stream_name]['great_grandparent_stream'] = stream_name
 
     return flat_streams
