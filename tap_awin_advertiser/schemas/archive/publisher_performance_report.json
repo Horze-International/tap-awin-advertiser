@@ -1,0 +1,100 @@
+{
+    "type": "object",
+    "additionalProperties": false,
+    "properties": {
+        "advertiser_id": {
+            "type": "integer"
+        },
+        "advertiser_name": {
+            "type": "string"
+        },
+        "publisher_id": {
+            "type": "integer"
+        },
+        "publisher_name": {
+            "type": "string"
+        },
+        "region": {
+            "type": "string"
+        },
+        "currency": {
+            "type": "string",
+            "description": "ISO code"
+        },
+        "impressions": {
+            "type": "integer",
+            "description": "number of impressions"
+        },
+        "clicks": {
+            "type": "integer",
+            "description": "number of clicks"
+        },
+        "pending_no": {
+            "type": "integer",
+            "description": "number of pending transactions"
+        },
+        "pending_value": {
+            "type": "number",
+            "description": "value of the pending transactions"
+        },
+        "pending_comm": {
+            "type": "number",
+            "description": "commissions of the pending transactions"
+        },
+        "confirmed_no": {
+            "type": "integer",
+            "description": "number of confirmed transactions"
+        },
+        "confirmed_value": {
+            "type": "number",
+            "description": "value of confirmed transactions"
+        },
+        "confirmed_comm": {
+            "type": "number",
+            "description": "commission of the confirmed transactions"
+        },
+        "bonus_no": {
+            "type": "integer",
+            "description": "number of bonus transactions"
+        },
+        "bonus_value": {
+            "type": "number",
+            "description": "value of the bonus transactions"
+        },
+        "bonus_comm": {
+            "type": "number",
+            "description": "commission of the bonus transactions"
+        },
+        "total_no": {
+            "type": "integer",
+            "description": "total number of transactions"
+        },
+        "total_value": {
+            "type": "number",
+            "description": "value of all transactions"
+        },
+        "total_comm": {
+            "type": "number",
+            "description": "commission of all transactions"
+        },
+        "declined_no": {
+            "type": "integer",
+            "description": "number of declined transactions"
+        },
+        "declined_value": {
+            "type": "number",
+            "description": "value of declined transactions"
+        },
+        "declined_comm": {
+            "type": "number",
+            "description": "commission of declined transactions"
+        },
+        "tags": {
+            "type": ["null", "array"],
+            "items": {
+                "type": "string"
+            },
+            "description": "publisher tags"
+        }
+    }
+}
