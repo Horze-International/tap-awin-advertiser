@@ -17,7 +17,6 @@ STREAMS = {
         'replication_method': 'FULL_TABLE',
         'path': 'accounts',
         'data_key_array': 'accounts',
-        'data_key_record': None,
         'params': {
             'type': 'advertiser'
         },

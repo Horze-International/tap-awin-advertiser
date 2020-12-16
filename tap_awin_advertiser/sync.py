@@ -133,7 +133,6 @@ def sync_endpoint(
     bookmark_query_field_from = endpoint_config.get('bookmark_query_field_from')
     bookmark_query_field_to = endpoint_config.get('bookmark_query_field_to')
     data_key_array = endpoint_config.get('data_key_array')
-    data_key_record = endpoint_config.get('data_key_record')#.format(targeting_type=targeting_type)
     id_fields = endpoint_config.get('key_properties')
     parent = endpoint_config.get('parent')
     date_window_size = int(endpoint_config.get('date_window_size', '1'))
@@ -228,12 +227,7 @@ def sync_endpoint(
         else:
             data_records = data
 
-        for data_record in data_records:
-            if data_key_record:
-                record = data_record.get(data_key_record, {})
-            else:
-                record = data_record
-
+        for record in data_records:
             # Add parent id field/value
             if parent and parent_id and parent not in record:
                 record[parent] = parent_id
@@ -246,16 +240,8 @@ def sync_endpoint(
                 LOGGER.error('error record: {}'.format(record))
                 raise Exception(err)
 
-            # verify primary_keys are in tansformed_record
-            for key in id_fields:
-                if not transformed_record.get(key):
-                    LOGGER.error('Stream: {}, Missing key {}'.format(
-                        stream_name, key))
-                    LOGGER.info('transformed_record: {}'.format(transformed_record))
-                    raise RuntimeError
-
             transformed_data.append(transformed_record)
-            # End for data_record in array
+            # End for record in array
         # End non-stats stream
 
         # LOGGER.info('transformed_data = {}'.format(transformed_data)) # COMMENT OUT
